@@ -11,6 +11,14 @@ class MockStatefulStrategy(StatefulStrategy):
         pass
     def on_bar_logic(self, bar, context):
         pass
+    def check_risk(self, data, context):
+        # Default behavior: simple percentage SL/TP logic for testing
+        if self.entry_price == 0: return False
+        price = data.price if hasattr(data, 'price') else data.close
+        pnl_pct = (price - self.entry_price) / self.entry_price
+        if self.stop_loss_pct > 0 and pnl_pct <= -self.stop_loss_pct: return True
+        if self.take_profit_pct > 0 and pnl_pct >= self.take_profit_pct: return True
+        return False
 
 class TestStatefulStrategy(unittest.TestCase):
     def setUp(self):

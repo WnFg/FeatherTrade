@@ -50,19 +50,26 @@ class StatefulStrategy(BaseStrategy):
             return
         
         if self.state == StrategyState.CLOSING:
-            # We prefer ticks for SL/TP but handle bars if needed
+            self._handle_closing(bar)
             return
             
+        # Normal state: check risk then signal
+        if self.position_qty != 0:
+            if self.check_risk(bar, context):
+                self.state = StrategyState.CLOSING
+                self._handle_closing(bar)
+                return
+
         self.on_bar_logic(bar, context)
 
     @abstractmethod
-    def check_risk(self, tick: Tick, context: StrategyContext) -> bool:
+    def check_risk(self, data: Any, context: StrategyContext) -> bool:
         pass
 
-    def _handle_closing(self, tick: Tick):
+    def _handle_closing(self, data: Any):
         """Sends a signal to close all positions."""
         if self.position_qty > 0:
-            self.send_signal(tick.symbol, "SELL", self.position_qty, 0.0)
+            self.send_signal(data.symbol, "SELL", self.position_qty, 0.0)
             # In a real system, we'd wait for fill event to move to CLOSED
             # For this MVP, we move to CLOSED immediately after signal
             self.state = StrategyState.CLOSED
