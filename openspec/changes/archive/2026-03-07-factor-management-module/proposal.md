@@ -24,6 +24,6 @@ Modern trading and risk management strategies require a unified, scalable, and e
 
 ## Impact
 
-- **New Files**: `src/trading_system/modules/factor_service.py`, `src/trading_system/data/factor_models.py`.
+- **New Files**: `src/trading_system/factors/service.py`, `src/trading_system/factors/models.py`.
 - **Dependencies**: SQLite (built-in), potential networking/file-parsing libraries (to be determined in design).
 - **Integration**: `StrategyManager` and `RiskManager` will eventually depend on the `factor-retrieval-api`.

@@ -2,7 +2,7 @@ import sqlite3
 import os
 from typing import List, Optional, Tuple
 from datetime import datetime
-from .factor_models import FactorDefinition, FactorValue
+from .models import FactorDefinition, FactorValue
 
 class FactorDatabase:
     """Low-level SQLite database wrapper for factor data."""
@@ -11,7 +11,7 @@ class FactorDatabase:
         self.db_path = db_path
         if schema_path is None:
             # Assume it's in the same directory as this file
-            schema_path = os.path.join(os.path.dirname(__file__), 'factor_schema.sql')
+            schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
         
         self.schema_path = schema_path
         self._init_db()

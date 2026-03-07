@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from ..data.factor_models import FactorValue, FactorDefinition
+from .models import FactorValue, FactorDefinition
 
 class BaseDataSource(ABC):
     """Abstract base class for all factor data sources (e.g., File, API)."""
@@ -43,6 +43,7 @@ class FactorService:
         self.registry = FactorRegistry(db)
         self._logic_map: Dict[str, BaseFactorLogic] = {}
         self._source_map: Dict[str, BaseDataSource] = {}
+        self._cache: Dict[str, List[FactorValue]] = {}
 
     def register_logic(self, name: str, logic: BaseFactorLogic):
         self._logic_map[name] = logic
@@ -54,8 +55,18 @@ class FactorService:
                           start_time: Optional[datetime] = None, 
                           end_time: Optional[datetime] = None,
                           limit: Optional[int] = None) -> List[FactorValue]:
-        """Queries factor values from the database."""
-        return self.db.query_factor_values(factor_name, symbol, start_time, end_time, limit)
+        """Queries factor values from the database with a simple cache."""
+        cache_key = f"{symbol}:{factor_name}:{start_time}:{end_time}:{limit}"
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+            
+        values = self.db.query_factor_values(factor_name, symbol, start_time, end_time, limit)
+        self._cache[cache_key] = values
+        return values
+
+    def clear_cache(self):
+        """Clears the internal cache."""
+        self._cache.clear()
 
     def get_factor_values_by_category(self, symbol: str, category: str,
                                       start_time: Optional[datetime] = None,

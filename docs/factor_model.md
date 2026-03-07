@@ -15,7 +15,7 @@ The factor system is split into two primary layers:
 
 ## 2. SQLite Schema Definition
 
-Implemented in `src/trading_system/data/factor_schema.sql`.
+Implemented in `src/trading_system/factors/schema.sql`.
 
 ```sql
 CREATE TABLE IF NOT EXISTS factor_definitions (
@@ -46,9 +46,9 @@ CREATE TABLE IF NOT EXISTS factor_values (
 ### 3.1 Setup and Registration
 
 ```python
-from trading_system.data.factor_database import FactorDatabase
-from trading_system.modules.factor_service import FactorService, MovingAverageFactor, FileDataSource
-from trading_system.data.factor_models import FactorDefinition
+from trading_system.factors.database import FactorDatabase
+from trading_system.factors.service import FactorService, MovingAverageFactor, FileDataSource
+from trading_system.factors.models import FactorDefinition
 
 db = FactorDatabase("factors.db")
 service = FactorService(db)

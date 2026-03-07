@@ -6,7 +6,7 @@
 
 ## 2. Core Data Models and Interfaces
 
-- [x] 2.1 Define `FactorDefinition` and `FactorValue` data classes in `src/trading_system/data/factor_models.py`
+- [x] 2.1 Define `FactorDefinition` and `FactorValue` data classes in `src/trading_system/factors/models.py`
 - [x] 2.2 Define abstract `BaseDataSource` interface for factor data ingestion
 - [x] 2.3 Define abstract `BaseFactorLogic` interface for factor computation
 
