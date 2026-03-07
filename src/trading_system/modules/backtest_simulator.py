@@ -21,7 +21,12 @@ class BacktestSimulator(AbstractExecutor):
     def submit_order(self, order: Order):
         """
         Validates the order via AccountService and adds it to the pending list.
+        Filters if strategy has an order IN_FLIGHT.
         """
+        if self.is_in_flight(order.strategy_id):
+            print(f"Simulator: IGNORED order {order.order_id} from {order.strategy_id} - Order already IN_FLIGHT.")
+            return
+
         if self._account_service:
             # 2.2 Synchronous check for funds/positions
             if order.side == Side.BUY:
@@ -40,7 +45,8 @@ class BacktestSimulator(AbstractExecutor):
 
         order.status = OrderStatus.PENDING
         self._pending_orders.append(order)
-        print(f"Simulator: Order submitted: {order.order_id} for {order.symbol} ({order.side})")
+        self._in_flight.add(order.strategy_id)
+        print(f"Simulator: Order submitted: {order.order_id} for {order.symbol} ({order.side}) from {order.strategy_id}")
 
     def cancel_order(self, order_id: str):
         """Cancels an order from the pending list."""
@@ -48,6 +54,8 @@ class BacktestSimulator(AbstractExecutor):
             if order.order_id == order_id:
                 order.status = OrderStatus.CANCELED
                 self._pending_orders.remove(order)
+                if order.strategy_id in self._in_flight:
+                    self._in_flight.remove(order.strategy_id)
                 print(f"Simulator: Order canceled: {order_id}")
                 return
         print(f"Simulator: Order not found for cancellation: {order_id}")
@@ -94,6 +102,8 @@ class BacktestSimulator(AbstractExecutor):
             if can_fill:
                 order.status = OrderStatus.FILLED
                 filled_orders.append(order)
+                if order.strategy_id in self._in_flight:
+                    self._in_flight.remove(order.strategy_id)
                 
                 # Notify the system about the fill
                 # This triggers AccountService to update its state

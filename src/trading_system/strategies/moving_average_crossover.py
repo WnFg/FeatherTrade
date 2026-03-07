@@ -1,9 +1,9 @@
 from typing import Any, Dict, List
 from src.trading_system.core.event_engine import EventEngine
-from src.trading_system.strategies.base_strategy import BaseStrategy
+from src.trading_system.strategies.stateful_strategy import StatefulStrategy, StrategyContext
 from src.trading_system.data.market_data import Bar, Tick
 
-class MovingAverageCrossover(BaseStrategy):
+class MovingAverageCrossover(StatefulStrategy):
     """
     A simple Moving Average Crossover strategy as a reference implementation.
     Logic: BUY when fast SMA > slow SMA, SELL when fast SMA < slow SMA.
@@ -15,18 +15,16 @@ class MovingAverageCrossover(BaseStrategy):
         self._quantity = self._params.get("quantity", 100)
         
         self._prices: Dict[str, List[float]] = {}
-        self._in_position: Dict[str, bool] = {}
 
-    def on_tick(self, tick: Tick):
+    def on_tick_logic(self, tick: Tick, context: StrategyContext):
         """Ticks are ignored for SMA crossover."""
         pass
 
-    def on_bar(self, bar: Bar):
+    def on_bar_logic(self, bar: Bar, context: StrategyContext):
         """Processes a new bar and generates signals based on SMA crossover."""
         symbol = bar.symbol
         if symbol not in self._prices:
             self._prices[symbol] = []
-            self._in_position[symbol] = False
             
         self._prices[symbol].append(bar.close)
         
@@ -42,14 +40,14 @@ class MovingAverageCrossover(BaseStrategy):
         
         # Crossover logic
         if fast_sma_prev <= slow_sma_prev and fast_sma_current > slow_sma_current:
-            if not self._in_position[symbol]:
+            if self.position_qty == 0:
                 self.send_signal(symbol, "BUY", self._quantity)
-                self._in_position[symbol] = True
+                self.record_entry(bar.close, self._quantity)
         
         elif fast_sma_prev >= slow_sma_prev and fast_sma_current < slow_sma_current:
-            if self._in_position[symbol]:
-                self.send_signal(symbol, "SELL", self._quantity)
-                self._in_position[symbol] = False
+            if self.position_qty > 0:
+                self.send_signal(symbol, "SELL", self.position_qty)
+                self.record_entry(0.0, 0)
 
     def _calculate_sma(self, prices: List[float], period: int) -> float:
         """Helper to calculate Simple Moving Average."""

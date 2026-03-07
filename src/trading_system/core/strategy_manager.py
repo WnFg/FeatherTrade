@@ -1,9 +1,10 @@
 import uuid
-from typing import List
+from typing import List, Dict, Optional, Any
 from src.trading_system.core.event_engine import EventEngine
 from src.trading_system.core.event_types import EventType, MarketEvent, SignalEvent, RiskSignalEvent
 from src.trading_system.modules.execution_engine import AbstractExecutor, Order, OrderType, Side
 from src.trading_system.strategies.base_strategy import BaseStrategy
+from src.trading_system.strategies.context import StrategyContext
 from src.trading_system.data.market_data import Bar, Tick
 
 class StrategyManager:
@@ -11,10 +12,17 @@ class StrategyManager:
     Coordinates between the EventEngine, SignalSources, and Executors.
     Dispatches market events to strategies and processes signals into orders.
     """
-    def __init__(self, event_engine: EventEngine, executor: AbstractExecutor):
+    def __init__(self, 
+                 event_engine: EventEngine, 
+                 executor: AbstractExecutor,
+                 account_service: Optional[Any] = None,
+                 factor_service: Optional[Any] = None):
         self._event_engine = event_engine
         self._executor = executor
+        self._account_service = account_service
+        self._factor_service = factor_service
         self._strategies: List[BaseStrategy] = []
+        self._contexts: Dict[str, StrategyContext] = {}
 
         # Register for market events to feed strategies
         self._event_engine.register(EventType.MARKET, self._on_market_event)
@@ -26,17 +34,24 @@ class StrategyManager:
         self._event_engine.register(EventType.RISK_SIGNAL, self._on_risk_signal_event)
 
     def add_strategy(self, strategy: BaseStrategy):
-        """Adds a strategy to the manager."""
+        """Adds a strategy to the manager and initializes its context."""
         self._strategies.append(strategy)
+        self._contexts[strategy.strategy_id] = StrategyContext(
+            strategy_id=strategy.strategy_id,
+            account_service=self._account_service,
+            execution_engine=self._executor,
+            factor_service=self._factor_service
+        )
 
     def _on_market_event(self, event: MarketEvent):
         """Feeds market data to all registered strategies."""
         data = event.data
         for strategy in self._strategies:
+            context = self._contexts.get(strategy.strategy_id)
             if isinstance(data, Tick):
-                strategy.on_tick(data)
+                strategy.on_tick(data, context)
             elif isinstance(data, Bar):
-                strategy.on_bar(data)
+                strategy.on_bar(data, context)
 
     def _on_signal_event(self, event: SignalEvent):
         """Converts a strategy signal into an order for the executor."""
@@ -55,6 +70,7 @@ class StrategyManager:
             order_type=OrderType.MARKET,
             side=Side.BUY if data["side"].upper() == "BUY" else Side.SELL,
             quantity=data["quantity"],
+            strategy_id=data.get("strategy_id", "Unknown"),
             price=data.get("price", 0.0)
         )
         self._executor.submit_order(order)

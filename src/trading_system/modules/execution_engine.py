@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Set
 from src.trading_system.core.event_engine import EventEngine
 
 class OrderStatus(Enum):
@@ -27,6 +27,7 @@ class Order:
     order_type: OrderType
     side: Side
     quantity: int
+    strategy_id: str = "Unknown"
     price: float = 0.0  # Limit or Stop price
     status: OrderStatus = OrderStatus.PENDING
 
@@ -44,6 +45,11 @@ class AbstractExecutor(ABC):
     def __init__(self, event_engine: EventEngine, account_service: Any = None):
         self._event_engine = event_engine
         self._account_service = account_service
+        self._in_flight: Set[str] = set()
+
+    def is_in_flight(self, strategy_id: str) -> bool:
+        """Checks if a strategy has an order in flight."""
+        return strategy_id in self._in_flight
 
     @abstractmethod
     def submit_order(self, order: Order):

@@ -26,7 +26,11 @@ class BacktestRunner:
         self.engine = EventEngine()
         self.account_service = AccountService(self.engine, initial_cash=initial_capital)
         self.simulator = BacktestSimulator(self.engine, self.account_service)
-        self.manager = StrategyManager(self.engine, self.simulator)
+        self.manager = StrategyManager(
+            self.engine, 
+            self.simulator, 
+            account_service=self.account_service
+        )
         
         if enable_risk_management:
             self.risk_manager = RiskManager(self.engine, self.account_service)
