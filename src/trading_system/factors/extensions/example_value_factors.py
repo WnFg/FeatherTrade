@@ -5,6 +5,9 @@ This file shows how to register value factors (PE, PB) with TuShare data source
 and daily scheduled tasks - all through declarative configuration.
 """
 
+import pandas as pd
+from typing import Dict, Any
+
 from src.trading_system.factors.base import BaseFactorLogic
 from src.trading_system.factors.config import FactorConfig, DataSourceConfig, ScheduleConfig
 
@@ -12,18 +15,22 @@ from src.trading_system.factors.config import FactorConfig, DataSourceConfig, Sc
 # Define factor computation logic (required - users must write code for this)
 class PERatioFactor(BaseFactorLogic):
     """PE Ratio factor - extracts PE value from TuShare daily_basic data."""
-    def compute(self, data):
+    def compute(self, data: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
         if 'pe' not in data.columns or data.empty:
-            return None
-        return data['pe'].iloc[-1]  # Return latest PE value
+            return pd.DataFrame(columns=['timestamp', 'value'])
+        result = data[['timestamp']].copy()
+        result['value'] = data['pe']
+        return result
 
 
 class PBRatioFactor(BaseFactorLogic):
     """PB Ratio factor - extracts PB value from TuShare daily_basic data."""
-    def compute(self, data):
+    def compute(self, data: pd.DataFrame, config: Dict[str, Any]) -> pd.DataFrame:
         if 'pb' not in data.columns or data.empty:
-            return None
-        return data['pb'].iloc[-1]  # Return latest PB value
+            return pd.DataFrame(columns=['timestamp', 'value'])
+        result = data[['timestamp']].copy()
+        result['value'] = data['pb']
+        return result
 
 
 # Define factor metadata (config-driven)

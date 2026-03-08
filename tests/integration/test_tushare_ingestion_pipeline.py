@@ -2,19 +2,21 @@ import unittest
 from unittest.mock import MagicMock, patch
 import pandas as pd
 import os
+import tempfile
 from datetime import datetime
 from src.trading_system.factors.database import FactorDatabase
-from src.trading_system.factors.service import FactorService, TuShareDataSource, MovingAverageFactor
+from src.trading_system.factors.service import FactorService
+from src.trading_system.factors.builtin.data_sources import TuShareDataSource
+from src.trading_system.factors.builtin.factors import MovingAverageFactor
 from src.trading_system.factors.models import FactorDefinition
 
 class TestTuShareIngestionPipeline(unittest.TestCase):
     def setUp(self):
-        self.db_path = "test_tushare_ingestion.db"
-        if os.path.exists(self.db_path):
-            os.remove(self.db_path)
+        self._tmp_dir = tempfile.mkdtemp()
+        self.db_path = os.path.join(self._tmp_dir, "test_tushare_ingestion.db")
         self.db = FactorDatabase(self.db_path)
         self.service = FactorService(self.db)
-        
+
     def tearDown(self):
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
@@ -46,7 +48,8 @@ class TestTuShareIngestionPipeline(unittest.TestCase):
         self.service.register_logic("sma_5", MovingAverageFactor())
         
         # 3. Register TuShare Source
-        source = TuShareDataSource(token="fake", api_name="daily")
+        source = TuShareDataSource()
+        source.configure({"token": "fake", "api": "daily", "symbols": ["000001.SZ"]})
         self.service.register_source("tushare_daily", source)
         
         # 4. Run Ingestion

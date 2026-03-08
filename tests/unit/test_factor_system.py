@@ -1,5 +1,6 @@
 import unittest
 import os
+import tempfile
 from datetime import datetime
 from src.trading_system.factors.database import FactorDatabase
 from src.trading_system.factors.models import FactorDefinition, FactorValue
@@ -9,9 +10,8 @@ from src.trading_system.factors.builtin.data_sources import FileDataSource
 
 class TestFactorSystem(unittest.TestCase):
     def setUp(self):
-        self.db_path = "test_factors.db"
-        if os.path.exists(self.db_path):
-            os.remove(self.db_path)
+        self._tmp_dir = tempfile.mkdtemp()
+        self.db_path = os.path.join(self._tmp_dir, "test_factors.db")
         self.db = FactorDatabase(self.db_path)
         self.service = FactorService(self.db)
 
@@ -68,23 +68,24 @@ class TestFactorSystem(unittest.TestCase):
         self.assertEqual(values[-1].value, 151.0)
 
     def test_category_query(self):
+        baseline = len(self.service.registry.list_factors())
         defn1 = FactorDefinition(
-            id=None, name="f1", display_name="F1", category="Momentum", 
+            id=None, name="f1", display_name="F1", category="Momentum",
             description="D1", formula_config={}
         )
         defn2 = FactorDefinition(
-            id=None, name="f2", display_name="F2", category="Volatility", 
+            id=None, name="f2", display_name="F2", category="Volatility",
             description="D2", formula_config={}
         )
         self.service.registry.register_factor(defn1)
         self.service.registry.register_factor(defn2)
-        
+
         momentum_factors = self.service.registry.list_factors("Momentum")
         self.assertEqual(len(momentum_factors), 1)
         self.assertEqual(momentum_factors[0].name, "f1")
-        
+
         all_factors = self.service.registry.list_factors()
-        self.assertEqual(len(all_factors), 2)
+        self.assertEqual(len(all_factors), baseline + 2)
 
     def test_caching_layer(self):
         defn = FactorDefinition(

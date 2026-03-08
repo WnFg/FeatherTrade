@@ -1,0 +1,14 @@
+# 因子模块用户配置
+# 此文件中的值会覆盖环境变量以外的默认值
+# 敏感信息（如 token）建议通过环境变量设置，避免提交到版本控制
+
+# TuShare API token
+# 也可通过环境变量 TUSHARE_TOKEN 设置
+tushare_token: ""
+
+# 数据库路径（绝对路径或相对于项目根目录的路径）
+# 也可通过环境变量 FACTORS_DB_PATH 设置
+# db_path: "workspace/data/factors.db"
+
+# 日志目录
+# log_dir: "workspace/logs"

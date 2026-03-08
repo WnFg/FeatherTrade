@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Workspace runtime data (generated at runtime, not committed)
+workspace/data/
+workspace/logs/
+
+# Workspace config is committed as a template — but keep local overrides out
+# (if you create a factors.local.yaml, add it here)
+workspace/config/factors.local.yaml
+
+# Stray test artifacts at root
+*.db
+test_sched_data.csv

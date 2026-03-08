@@ -1,5 +1,6 @@
 import unittest
 import os
+import tempfile
 import time
 from datetime import datetime, timedelta
 from src.trading_system.factors.database import FactorDatabase
@@ -12,7 +13,8 @@ from apscheduler.jobstores.memory import MemoryJobStore
 
 class TestFactorScheduling(unittest.TestCase):
     def setUp(self):
-        self.db_path = "test_scheduling.db"
+        self._tmp_dir = tempfile.mkdtemp()
+        self.db_path = os.path.join(self._tmp_dir, "test_scheduling.db")
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
             
@@ -43,7 +45,7 @@ class TestFactorScheduling(unittest.TestCase):
         
         # 2. Create Data Source Instance
         # Use FileDataSource with some test data
-        csv_path = "test_sched_data.csv"
+        csv_path = os.path.join(self._tmp_dir, "test_sched_data.csv")
         with open(csv_path, "w") as f:
             f.write("timestamp,symbol,price\n")
             f.write(f"{(datetime.now() - timedelta(minutes=5)).isoformat()},AAPL,100.0\n")
@@ -104,7 +106,7 @@ class TestFactorScheduling(unittest.TestCase):
             name="test_config_source",
             source_class="FileDataSource",
             params={
-                "file_path": "test_sched_data.csv",
+                "file_path": os.path.join(self._tmp_dir, "test_sched_data.csv"),
                 "symbols": ["AAPL", "GOOGL"]
             },
             time_range={"start": "today-1d", "end": "today"}
@@ -122,7 +124,7 @@ class TestFactorScheduling(unittest.TestCase):
         self.service.registry._register_schedule_configs([schedule_config])
 
         # 3. Create test data file
-        csv_path = "test_sched_data.csv"
+        csv_path = os.path.join(self._tmp_dir, "test_sched_data.csv")
         with open(csv_path, "w") as f:
             f.write("timestamp,symbol,price\n")
             f.write(f"{datetime.now().isoformat()},AAPL,100.0\n")
