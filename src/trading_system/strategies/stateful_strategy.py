@@ -18,41 +18,59 @@ class StatefulStrategy(BaseStrategy):
     def __init__(self, event_engine: EventEngine, params: Dict[str, Any] = None):
         super().__init__(event_engine, params)
         self.state = StrategyState.NORMAL
-        
+
         # Risk management parameters
         self.stop_loss_pct = self._params.get("stop_loss_pct", 0.0)
         self.take_profit_pct = self._params.get("take_profit_pct", 0.0)
         self.max_position = self._params.get("max_position", 100)
-        
+
         # Track entry price for SL/TP
         self.entry_price = 0.0
         self.position_qty = 0
+        self._pending_buy_qty = 0  # quantity in-flight (BUY submitted, not yet filled)
+
+    def on_fill(self, fill_data: Dict[str, Any]):
+        """
+        Called when an order for this strategy is confirmed filled.
+        Updates position_qty from actual fill data so that exit signals
+        use the real filled quantity.
+        """
+        from src.trading_system.modules.execution_engine import Side
+        side = fill_data.get("side")
+        qty  = fill_data.get("quantity", 0)
+        price = fill_data.get("price", 0.0)
+        if side == Side.BUY:
+            self.position_qty = qty
+            self.entry_price  = price
+            self._pending_buy_qty = 0
+        elif side == Side.SELL:
+            self.position_qty = max(0, self.position_qty - qty)
 
     def on_tick(self, tick: Tick, context: StrategyContext):
         if self.state == StrategyState.CLOSED:
             return
-            
+
         if self.state == StrategyState.CLOSING:
             self._handle_closing(tick)
             return
-            
+
         # Normal state: check risk then signal
         if self.position_qty != 0:
             if self.check_risk(tick, context):
                 self.state = StrategyState.CLOSING
                 self._handle_closing(tick)
                 return
-        
+
         self.on_tick_logic(tick, context)
 
     def on_bar(self, bar: Bar, context: StrategyContext):
         if self.state == StrategyState.CLOSED:
             return
-        
+
         if self.state == StrategyState.CLOSING:
             self._handle_closing(bar)
             return
-            
+
         # Normal state: check risk then signal
         if self.position_qty != 0:
             if self.check_risk(bar, context):
@@ -84,6 +102,6 @@ class StatefulStrategy(BaseStrategy):
         pass
 
     def record_entry(self, price: float, qty: int):
-        """Helper to record entry for risk tracking."""
+        """Mark a pending entry; actual position_qty is set via on_fill."""
+        self._pending_buy_qty = qty
         self.entry_price = price
-        self.position_qty = qty

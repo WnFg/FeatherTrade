@@ -33,6 +33,9 @@ class StrategyManager:
         # Register for risk signal events to immediately close positions
         self._event_engine.register(EventType.RISK_SIGNAL, self._on_risk_signal_event)
 
+        # Dispatch fill events back to originating strategy
+        self._event_engine.register(EventType.FILL, self._on_fill_event)
+
     def add_strategy(self, strategy: BaseStrategy):
         """Adds a strategy to the manager and initializes its context."""
         self._strategies.append(strategy)
@@ -60,6 +63,16 @@ class StrategyManager:
     def _on_risk_signal_event(self, event: RiskSignalEvent):
         """Converts a risk signal into an immediate market order."""
         self._process_signal(event.data, f"RiskManager ({event.data.get('action_type', 'UNKNOWN')})")
+
+    def _on_fill_event(self, event):
+        """Routes fill events back to the originating strategy's on_fill hook."""
+        data = event.data
+        strategy_id = data.get("strategy_id") or data.get("order_id", "")
+        # Find by strategy_id in fill data (set by BacktestSimulator)
+        for strategy in self._strategies:
+            if strategy.strategy_id == data.get("strategy_id"):
+                strategy.on_fill(data)
+                return
 
     def _process_signal(self, data: dict, source: str):
         """Helper to create and submit an order from signal data."""

@@ -29,6 +29,15 @@ class BaseStrategy(ABC):
         """Called when a new bar is received."""
         pass
 
+    def on_fill(self, fill_data: Dict[str, Any]):
+        """
+        Called when an order for this strategy is filled.
+
+        Override in subclasses to react to fills (e.g. update position tracking).
+        Default implementation is a no-op.
+        """
+        pass
+
     def send_signal(self, symbol: str, side: str, quantity: int, price: float = 0.0):
         """Sends a SignalEvent to the engine."""
         signal_data = {

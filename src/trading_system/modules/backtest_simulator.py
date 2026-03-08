@@ -109,6 +109,7 @@ class BacktestSimulator(AbstractExecutor):
                 # This triggers AccountService to update its state
                 self._event_engine.put(FillEvent({
                     "order_id": order.order_id,
+                    "strategy_id": order.strategy_id,
                     "symbol": order.symbol,
                     "side": order.side,
                     "quantity": order.quantity,
