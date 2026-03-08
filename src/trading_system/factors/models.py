@@ -58,3 +58,78 @@ class FactorValue:
             value=row[4],
             metadata=json.loads(row[5]) if row[5] else {}
         )
+
+@dataclass
+class DataSourceInstance:
+    """A configured data source template with parameters."""
+    id: Optional[int]
+    name: str
+    class_path: str
+    parameters: Dict[str, Any]
+    transformation_config: Dict[str, Any]
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    def to_json_params(self) -> str:
+        return json.dumps(self.parameters)
+
+    def to_json_transform(self) -> str:
+        return json.dumps(self.transformation_config)
+
+    @staticmethod
+    def from_db_row(row: tuple) -> 'DataSourceInstance':
+        return DataSourceInstance(
+            id=row[0],
+            name=row[1],
+            class_path=row[2],
+            parameters=json.loads(row[3]) if row[3] else {},
+            transformation_config=json.loads(row[4]) if row[4] else {},
+            created_at=datetime.fromisoformat(row[5]) if isinstance(row[5], str) else row[5],
+            updated_at=datetime.fromisoformat(row[6]) if isinstance(row[6], str) else row[6]
+        )
+
+@dataclass
+class ScheduledTask:
+    """A task that links a factor with a data source and scheduling info."""
+    id: Optional[int]
+    factor_definition_id: int
+    data_source_instance_id: int
+    trigger_type: str
+    trigger_config: Any
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    @staticmethod
+    def from_db_row(row: tuple) -> 'ScheduledTask':
+        return ScheduledTask(
+            id=row[0],
+            factor_definition_id=row[1],
+            data_source_instance_id=row[2],
+            trigger_type=row[3],
+            trigger_config=json.loads(row[4]) if row[4] and row[4].startswith('{') else row[4],
+            is_active=bool(row[5]),
+            created_at=datetime.fromisoformat(row[6]) if isinstance(row[6], str) else row[6],
+            updated_at=datetime.fromisoformat(row[7]) if isinstance(row[7], str) else row[7]
+        )
+
+@dataclass
+class TaskExecutionLog:
+    """Execution history for a scheduled task."""
+    id: Optional[int]
+    task_id: int
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    status: str = 'PENDING'
+    error_message: Optional[str] = None
+
+    @staticmethod
+    def from_db_row(row: tuple) -> 'TaskExecutionLog':
+        return TaskExecutionLog(
+            id=row[0],
+            task_id=row[1],
+            start_time=datetime.fromisoformat(row[2]) if isinstance(row[2], str) else row[2],
+            end_time=datetime.fromisoformat(row[3]) if isinstance(row[3], str) and row[3] else row[3],
+            status=row[4],
+            error_message=row[5]
+        )

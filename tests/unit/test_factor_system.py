@@ -1,10 +1,11 @@
 import unittest
 import os
-import sqlite3
 from datetime import datetime
 from src.trading_system.factors.database import FactorDatabase
 from src.trading_system.factors.models import FactorDefinition, FactorValue
-from src.trading_system.factors.service import FactorService, MovingAverageFactor, FileDataSource
+from src.trading_system.factors.service import FactorService
+from src.trading_system.factors.builtin.factors import MovingAverageFactor
+from src.trading_system.factors.builtin.data_sources import FileDataSource
 
 class TestFactorSystem(unittest.TestCase):
     def setUp(self):
@@ -17,11 +18,8 @@ class TestFactorSystem(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
-        if os.path.exists("factor_test_data.csv"):
-            pass # Keep it for other tests or cleanup if needed
 
     def test_factor_registration(self):
-        # 3.1 & 3.2
         defn = FactorDefinition(
             id=None,
             name="sma_3",
@@ -38,7 +36,6 @@ class TestFactorSystem(unittest.TestCase):
         self.assertEqual(retrieved.formula_config["window"], 3)
 
     def test_factor_computation_and_storage(self):
-        # 5.1, 5.2, 4.1
         defn = FactorDefinition(
             id=None,
             name="sma_3",
@@ -48,26 +45,29 @@ class TestFactorSystem(unittest.TestCase):
             formula_config={"window": 3, "price_key": "price"}
         )
         self.service.registry.register_factor(defn)
-        
+
+        # Manual registration should still work and take precedence
         self.service.register_logic("sma_3", MovingAverageFactor())
-        self.service.register_source("csv_file", FileDataSource("/Users/wfang/project/pycharm/tradeSystem/factor_test_data.csv"))
-        
+
+        # FileDataSource now uses configure() pattern
+        file_source = FileDataSource()
+        file_source.configure({"file_path": "/Users/wfang/project/pycharm/tradeSystem/factor_test_data.csv"})
+        self.service.register_source("csv_file", file_source)
+
         start = datetime.fromisoformat("2023-01-01T10:00:00")
         end = datetime.fromisoformat("2023-01-01T10:04:00")
-        
+
         self.service.compute_and_store("AAPL", "sma_3", "csv_file", start, end)
-        
-        # 6.1
+
         values = self.service.get_factor_values("AAPL", "sma_3")
-        self.assertEqual(len(values), 3) # 5 points, window 3 -> points at index 2, 3, 4
-        
-        # Latest value should be at index 4: (152 + 153 + 154) / 3 = 153.0
-        self.assertEqual(values[0].value, 153.0) 
-        # First computed value should be at index 2: (150 + 151 + 152) / 3 = 151.0
+        self.assertEqual(len(values), 3)
+
+        # Latest value at index 0
+        self.assertEqual(values[0].value, 153.0)
+        # First computed value at index 2
         self.assertEqual(values[-1].value, 151.0)
 
     def test_category_query(self):
-        # 3.2 & 6.2
         defn1 = FactorDefinition(
             id=None, name="f1", display_name="F1", category="Momentum", 
             description="D1", formula_config={}
@@ -87,7 +87,6 @@ class TestFactorSystem(unittest.TestCase):
         self.assertEqual(len(all_factors), 2)
 
     def test_caching_layer(self):
-        # 6.3
         defn = FactorDefinition(
             id=None, name="c1", display_name="C1", category="C", 
             description="D", formula_config={}

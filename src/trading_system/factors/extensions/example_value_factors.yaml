@@ -1,0 +1,50 @@
+# Example YAML configuration for value factors
+# Equivalent to example_value_factors.py
+
+factor_configs:
+  - name: pe_ratio
+    category: Value
+    display_name: PE Ratio
+    description: Price-to-Earnings ratio from TuShare daily_basic
+    formula_config:
+      field: pe
+    version: "1.0.0"
+
+  - name: pb_ratio
+    category: Value
+    display_name: PB Ratio
+    description: Price-to-Book ratio from TuShare daily_basic
+    formula_config:
+      field: pb
+    version: "1.0.0"
+
+data_source_configs:
+  - name: tushare_daily_basic
+    source_class: TuShareDataSource
+    params:
+      api: daily_basic
+      symbols:
+        - "000001.SZ"
+        - "600000.SH"
+      fields:
+        - ts_code
+        - trade_date
+        - pe
+        - pb
+        - turnover_rate
+    time_range:
+      start: today-3d
+      end: today
+    transformation:
+      rename:
+        ts_code: symbol
+        trade_date: timestamp
+
+schedule_configs:
+  - name: daily_pe_pb_job
+    factor: pe_ratio
+    data_source: tushare_daily_basic
+    trigger:
+      type: cron
+      expr: "0 18 * * 1-5"
+    is_active: true
