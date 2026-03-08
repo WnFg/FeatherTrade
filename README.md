@@ -2,6 +2,7 @@
 
 An event-driven trend trading framework for A-share quantitative research. **FeatherTrade** is lightweight, modular, and built for both researchers and developers. Supports strategy development, backtesting, and a factor management pipeline for building and persisting financial factors from external data sources.
 
+[中文简介](README.zh.md)
 ---
 
 ## Features
