@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import logging
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 from .models import FactorValue, FactorDefinition, DataSourceInstance
@@ -9,6 +10,9 @@ from .factory import DataSourceFactory
 from .transformer import ParameterTransformer
 from .config import DataSourceConfig
 from .database import FactorDatabase
+from .quick_register import QuickRegisterConfig, ColumnExtractLogic, detect_factor_columns
+
+logger = logging.getLogger(__name__)
 
 class FactorService:
     """Main interface for interacting with the factor system."""
@@ -32,6 +36,13 @@ class FactorService:
         self._logic_instances: Dict[str, BaseFactorLogic] = {}
         self._source_instances: Dict[str, BaseDataSource] = {}
         self._cache: Dict[str, List[FactorValue]] = {}
+
+        # Auto-execute discovered QuickRegisterConfigs
+        for qr_config in self.registry.get_quick_register_configs():
+            try:
+                self.quick_register(qr_config)
+            except Exception as e:
+                logger.error(f"Auto quick_register failed for data_source={qr_config.data_source}: {e}")
 
     def register_logic(self, name: str, logic: BaseFactorLogic):
         """Explicitly register a logic instance (manual override)."""
@@ -196,3 +207,51 @@ class FactorService:
             ))
 
         self.db.insert_factor_values(computed_values)
+
+    def quick_register(self, config: QuickRegisterConfig,
+                        sample_symbol: Optional[str] = None,
+                        sample_date: Optional[datetime] = None) -> List[str]:
+        """Batch-register DataFrame columns as factors from a QuickRegisterConfig."""
+        source = self._get_source(config.data_source)
+        if source is None:
+            logger.error(f"quick_register: data source '{config.data_source}' not found")
+            return []
+
+        if config.fields:
+            fields = list(config.fields)
+        else:
+            if sample_symbol is None or sample_date is None:
+                raise ValueError(
+                    "quick_register requires sample_symbol and sample_date when fields is not specified"
+                )
+            sample_df = source.fetch_data(sample_symbol, sample_date, sample_date)
+            if sample_df.empty:
+                logger.warning(f"quick_register: sample fetch returned empty DataFrame for '{config.data_source}'")
+                return []
+            fields = detect_factor_columns(sample_df)
+            if not fields:
+                logger.warning(f"quick_register: no eligible numeric columns found in '{config.data_source}'")
+                return []
+
+        registered = []
+        for field_name in fields:
+            factor_name = f"{config.prefix}{field_name}" if config.prefix else field_name
+            description = config.description_template.format(field=field_name)
+
+            existing = self.registry.get_factor(factor_name)
+            if not existing:
+                factor_def = FactorDefinition(
+                    id=None,
+                    name=factor_name,
+                    display_name=factor_name,
+                    category=config.category,
+                    description=description,
+                    formula_config={"column": field_name, "quick_register": True},
+                )
+                self.registry.register_factor(factor_def)
+
+            logic = ColumnExtractLogic()
+            self._logic_instances[factor_name] = logic
+            registered.append(factor_name)
+
+        return registered

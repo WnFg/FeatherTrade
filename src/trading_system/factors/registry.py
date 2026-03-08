@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional, Type
 from .models import FactorDefinition
 from .base import BaseDataSource, BaseFactorLogic
 from .config import FactorConfig, DataSourceConfig, ScheduleConfig
+from .quick_register import QuickRegisterConfig
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,8 @@ class DiscoveryEngine:
         configs = {
             'factor_configs': [],
             'data_source_configs': [],
-            'schedule_configs': []
+            'schedule_configs': [],
+            'quick_register_configs': []
         }
 
         if not os.path.exists(directory):
@@ -80,6 +82,8 @@ class DiscoveryEngine:
                                 configs['data_source_configs'].extend(module.DATA_SOURCE_CONFIGS)
                             if hasattr(module, 'SCHEDULE_CONFIGS'):
                                 configs['schedule_configs'].extend(module.SCHEDULE_CONFIGS)
+                            if hasattr(module, 'QUICK_REGISTER_CONFIGS'):
+                                configs['quick_register_configs'].extend(module.QUICK_REGISTER_CONFIGS)
                     except Exception as e:
                         logger.error(f"Failed to load config from {file_path}: {e}")
 
@@ -124,6 +128,7 @@ class FactorRegistry:
         # Maps for config-driven instances
         self._ds_config_map: Dict[str, DataSourceConfig] = {}
         self._schedule_config_map: Dict[str, ScheduleConfig] = {}
+        self._quick_register_configs: List[QuickRegisterConfig] = []
 
         self.discover_all()
 
@@ -168,6 +173,7 @@ class FactorRegistry:
         self._register_factor_configs(configs['factor_configs'])
         self._register_data_source_configs(configs['data_source_configs'])
         self._register_schedule_configs(configs['schedule_configs'])
+        self._register_quick_register_configs(configs['quick_register_configs'])
 
     def get_logic_class(self, name: str) -> Optional[Type[BaseFactorLogic]]:
         return self._logic_classes.get(name.lower())
@@ -242,3 +248,13 @@ class FactorRegistry:
     def get_schedule_config(self, name: str) -> Optional[ScheduleConfig]:
         """Retrieve a ScheduleConfig by name."""
         return self._schedule_config_map.get(name)
+
+    def _register_quick_register_configs(self, configs: List[QuickRegisterConfig]) -> None:
+        """Store QuickRegisterConfig entries in memory."""
+        for config in configs:
+            self._quick_register_configs.append(config)
+            logger.info(f"Registered quick register config for data source: {config.data_source}")
+
+    def get_quick_register_configs(self) -> List[QuickRegisterConfig]:
+        """Return all discovered QuickRegisterConfig entries."""
+        return list(self._quick_register_configs)
