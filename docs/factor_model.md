@@ -92,41 +92,41 @@ To add a new factor:
 2. Register the new logic class with `FactorService.register_logic()`.
 3. Add a matching entry in `factor_definitions` (via code or SQL).
 
-## 5. 配置驱动注册（推荐方式）
+## 5. Config-Driven Registration (Recommended)
 
-除了上述编程式注册，系统支持通过声明式配置自动注册因子、数据源和调度任务。
+In addition to the programmatic approach above, the system supports declarative config-based registration for factors, data sources, and scheduled tasks.
 
-**重要说明**：
-- **因子计算逻辑（`BaseFactorLogic` 子类）必须用 Python 代码定义** — 这是因子的核心部分
-- **因子元数据、数据源、调度任务可以用配置定义** — 减少样板代码
+**Key point**:
+- **Factor computation logic (`BaseFactorLogic` subclasses) must be defined in Python code** — this is the core of a factor
+- **Factor metadata, data sources, and schedules can be defined via config** — reducing boilerplate
 
-### 5.1 配置数据结构
+### 5.1 Config Data Structures
 
-三个核心 dataclass 定义在 `src/trading_system/factors/config.py`：
+Three core dataclasses defined in `src/trading_system/factors/config.py`:
 
-- `FactorConfig` — 因子元数据（name, category, display_name, formula_config, version）
-- `DataSourceConfig` — 数据源配置（name, source_class, params, time_range, transformation）
-- `ScheduleConfig` — 调度任务配置（name, factor, data_source, trigger, is_active）
+- `FactorConfig` — factor metadata (name, category, display_name, formula_config, version)
+- `DataSourceConfig` — data source config (name, source_class, params, time_range, transformation)
+- `ScheduleConfig` — scheduled task config (name, factor, data_source, trigger, is_active)
 
-### 5.2 Python 配置方式
+### 5.2 Python Config
 
-在 `factors/extensions/` 目录下创建 `.py` 文件，定义模块级变量：
+Create a `.py` file in `factors/extensions/` with module-level variables:
 
 ```python
 from src.trading_system.factors.base import BaseFactorLogic
 from src.trading_system.factors.config import FactorConfig, DataSourceConfig, ScheduleConfig
 
-# 1. 定义计算逻辑（必须用代码）
+# 1. Define computation logic (must be code)
 class PERatioFactor(BaseFactorLogic):
-    def compute(self, data):
+    def compute(self, data, config):
         if 'pe' not in data.columns or data.empty:
             return None
         return data['pe'].iloc[-1]
 
-# 2. 定义元数据配置
+# 2. Define metadata config
 FACTOR_CONFIGS = [
     FactorConfig(
-        name="peratioFactor",  # 必须与类名小写一致
+        name="peratioFactor",  # must match class name (lowercased)
         category="Value",
         display_name="PE Ratio",
         formula_config={"field": "pe"}
@@ -153,15 +153,15 @@ SCHEDULE_CONFIGS = [
 ]
 ```
 
-### 5.3 YAML 配置方式
+### 5.3 YAML Config
 
-**限制**：YAML 只能定义配置，不能定义计算逻辑。必须配合 Python 文件定义 `BaseFactorLogic` 子类。
+**Limitation**: YAML can only define config, not computation logic. Must be paired with a Python file defining `BaseFactorLogic` subclasses.
 
-等价的 YAML 文件（放在 `factors/extensions/` 目录下）：
+Equivalent YAML file (placed in `factors/extensions/`):
 
 ```yaml
 factor_configs:
-  - name: peratioFactor  # 必须与 Python 文件中的类名小写一致
+  - name: peratioFactor  # must match Python class name (lowercased)
     category: Value
     display_name: PE Ratio
     formula_config:
@@ -186,19 +186,19 @@ schedule_configs:
       expr: "0 18 * * 1-5"
 ```
 
-### 5.4 自动发现机制
+### 5.4 Auto-Discovery
 
-`DiscoveryEngine` 在 `FactorService` 初始化时自动扫描 `builtin/` 和 `extensions/` 目录：
-- Python 文件中的 `FACTOR_CONFIGS`、`DATA_SOURCE_CONFIGS`、`SCHEDULE_CONFIGS` 变量
-- `.yaml` 文件中的 `factor_configs`、`data_source_configs`、`schedule_configs` 节
-- `BaseFactorLogic` 和 `BaseDataSource` 子类
+`DiscoveryEngine` scans `builtin/` and `extensions/` directories on `FactorService` init:
+- `FACTOR_CONFIGS`, `DATA_SOURCE_CONFIGS`, `SCHEDULE_CONFIGS` variables in Python files
+- `factor_configs`, `data_source_configs`, `schedule_configs` sections in `.yaml` files
+- `BaseFactorLogic` and `BaseDataSource` subclasses
 
-扫描结果自动注册到 `FactorRegistry`，无需手动调用注册方法。
+All discovered configs are automatically registered to `FactorRegistry` — no manual registration calls needed.
 
-### 5.5 相对时间范围
+### 5.5 Relative Time Ranges
 
-`DataSourceConfig.time_range` 支持相对时间表达式，在调度执行时动态解析：
-- `today` — 当天 00:00:00
-- `today-Nd` — N 天前（如 `today-3d`）
-- `today-Nw` — N 周前（如 `today-1w`）
-- ISO 8601 格式 — 固定日期（如 `2024-01-01`）
+`DataSourceConfig.time_range` supports relative time expressions, resolved dynamically at execution time:
+- `today` — today at 00:00:00
+- `today-Nd` — N days ago (e.g. `today-3d`)
+- `today-Nw` — N weeks ago (e.g. `today-1w`)
+- ISO 8601 format — fixed date (e.g. `2024-01-01`)

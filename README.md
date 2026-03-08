@@ -61,11 +61,11 @@ python run_factor_backtest.py
 
 | Document | Description |
 |---|---|
-| [Strategy Guide](docs/策略机制.md) | How to write strategies and connect them to the backtest engine |
+| [Strategy Guide](docs/strategy-guide.md) | How to write strategies and connect them to the backtest engine |
 | [Factor System Overview](docs/factor_model.md) | Factor pipeline architecture: fetch → compute → store |
-| [Factor Quick Register](docs/因子快捷注册.md) | Batch-register factors from a data source in one config block |
-| [TuShare Data Source](docs/tuShare数据源.md) | Using `TuShareDataSource` for A-share data ingestion |
-| [User Data Source & Factor Examples](docs/用户注册数据源与因子用例.md) | Step-by-step examples for registering data sources and factors |
+| [Factor Quick Register](docs/factor-quick-register.md) | Batch-register factors from a data source in one config block |
+| [TuShare Data Source](docs/tushare-data-source.md) | Using `TuShareDataSource` for A-share data ingestion |
+| [Factor Extension Examples](docs/factor-extension-examples.md) | Step-by-step examples for registering data sources and factors |
 | [Extensibility & Scheduling](docs/factor_extensibility_scheduling.md) | Extension pattern and scheduled ingestion tasks |
 | [Extension Guide](docs/extension-guide.md) | How to extend strategies, adapters, and factor components |
 | [Architecture](docs/architecture.md) | System architecture and event flow |

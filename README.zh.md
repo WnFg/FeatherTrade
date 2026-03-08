@@ -61,11 +61,11 @@ python run_factor_backtest.py
 
 | 文档 | 说明 |
 |---|---|
-| [策略机制](docs/策略机制.md) | 如何编写策略并接入回测引擎 |
+| [策略指南](docs/strategy-guide.md) | 如何编写策略并接入回测引擎 |
 | [因子系统概览](docs/factor_model.md) | 因子流水线架构：fetch → compute → store |
-| [因子快捷注册](docs/因子快捷注册.md) | 一个配置块从数据源批量注册因子 |
-| [TuShare 数据源](docs/tuShare数据源.md) | 使用 `TuShareDataSource` 接入 A 股数据 |
-| [数据源与因子用例](docs/用户注册数据源与因子用例.md) | 注册数据源和因子的完整示例 |
+| [因子快捷注册](docs/factor-quick-register.md) | 一个配置块从数据源批量注册因子 |
+| [TuShare 数据源](docs/tushare-data-source.md) | 使用 `TuShareDataSource` 接入 A 股数据 |
+| [数据源与因子扩展示例](docs/factor-extension-examples.md) | 注册数据源和因子的完整示例 |
 | [可扩展性与调度](docs/factor_extensibility_scheduling.md) | extensions/ 扩展机制与定时任务配置 |
 | [扩展指南](docs/extension-guide.md) | 如何扩展策略、适配器与因子组件 |
 | [架构概览](docs/architecture.md) | 系统架构与事件流 |
