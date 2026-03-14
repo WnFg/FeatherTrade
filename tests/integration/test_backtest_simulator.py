@@ -59,7 +59,8 @@ class TestBacktestSimulator(unittest.TestCase):
         self.engine.put(MarketEvent(Tick("MSFT", datetime.now(), 199.0, 1000)))
         time.sleep(0.5)
         self.assertEqual(self.simulator.get_position("MSFT").quantity, 50)
-        self.assertEqual(self.simulator.get_position("MSFT").average_cost, 199.0)
+        # Fill price is the limit price (200.0), not the market price (199.0)
+        self.assertEqual(self.simulator.get_position("MSFT").average_cost, 200.0)
 
 if __name__ == '__main__':
     unittest.main()

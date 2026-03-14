@@ -1,5 +1,4 @@
-import time
-from typing import Any, Dict, Type
+from typing import Any, Dict, Optional, Type
 from src.trading_system.core.event_engine import EventEngine
 from src.trading_system.core.strategy_manager import StrategyManager
 from src.trading_system.modules.backtest_simulator import BacktestSimulator
@@ -9,6 +8,8 @@ from src.trading_system.strategies.base_strategy import BaseStrategy
 from src.trading_system.risk.risk_manager import RiskManager
 from src.trading_system.risk.fixed_stop_loss import FixedStopLossStrategy
 from src.trading_system.risk.fixed_take_profit import FixedTakeProfitStrategy
+from src.trading_system.backtest.recorder import BacktestRecorder
+from src.trading_system.backtest.result import BacktestResult
 
 class BacktestRunner:
     """
@@ -48,27 +49,65 @@ class BacktestRunner:
         
         self.initial_capital = initial_capital
 
+        # Recorder for capturing backtest data (non-invasive)
+        self.recorder = BacktestRecorder(
+            self.engine, self.account_service, symbol, initial_capital
+        )
+
     def run(self):
         """Starts the components and runs the backtest."""
         print("--- Starting Backtest ---")
         self.engine.start()
         self.data_feed.start()
-        
-        # Wait for data feed to finish
+
+        # Wait for the CSV feed to finish publishing all bars
         while self.data_feed._thread and self.data_feed._thread.is_alive():
-             time.sleep(1)
-             
-        # Allow time for remaining events to be processed
-        time.sleep(2)
-        
+            import time
+            time.sleep(0.1)
+
         self.data_feed.stop()
+        # engine.stop() calls queue.join() internally — waits for all events
+        # (including FillEvents triggered by the last bars) to be processed.
         self.engine.stop()
+        # Fill any orders submitted on the final bar that had no subsequent
+        # MarketEvent to trigger _check_fills.
+        self.simulator.flush_pending_orders()
         print("--- Backtest Complete ---")
 
-    def get_results(self):
-        """Retrieves and displays backtest results from AccountService."""
-        print("Final Account State:")
-        print(f"  Cash: {self.account_service.cash:.2f}")
-        print("  Positions:")
-        for symbol, pos in self.account_service._positions.items():
-            print(f"    {symbol}: {pos.quantity} units @ Avg Cost {pos.average_cost:.2f}")
+    def get_results(
+        self,
+        verbose: bool = True,
+        save_report: bool = False,
+        report_path: str = "backtest_report.html",
+    ) -> BacktestResult:
+        """Retrieves structured backtest results from the recorder.
+
+        Args:
+            verbose: If True (default), print final cash and positions to console.
+            save_report: If True, generate a visualisation report file.
+            report_path: Output path for the report (HTML or PNG).
+
+        Returns:
+            A BacktestResult dataclass with full trade history, equity curve, and metrics.
+        """
+        result = self.recorder.build_result()
+
+        if verbose:
+            print("Final Account State:")
+            print(f"  Cash: {self.account_service.cash:.2f}")
+            print("  Positions:")
+            for symbol, pos in self.account_service._positions.items():
+                print(f"    {symbol}: {pos.quantity} units @ Avg Cost {pos.average_cost:.2f}")
+            print(f"  Final Equity: {result.final_equity:.2f}")
+            print(f"  Total Return: {result.metrics.get('total_return', 0):.2%}")
+            print(f"  Max Drawdown: {result.metrics.get('max_drawdown', 0):.2%}")
+            print(f"  Sharpe Ratio: {result.metrics.get('sharpe_ratio', 0):.2f}")
+            print(f"  Win Rate:     {result.metrics.get('win_rate', 0):.2%}")
+
+        if save_report:
+            from src.trading_system.backtest.visualizer import BacktestVisualizer
+            visualizer = BacktestVisualizer()
+            visualizer.plot(result, output_path=report_path)
+            print(f"  Report saved to: {report_path}")
+
+        return result

@@ -1,8 +1,9 @@
 # Python
-__pycache__/
+*__pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.pyc
 .Python
 *.egg-info/
 dist/
@@ -34,3 +35,4 @@ workspace/config/factors.local.yaml
 # Stray test artifacts at root
 *.db
 test_sched_data.csv
+*.pyc

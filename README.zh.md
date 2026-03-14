@@ -9,6 +9,7 @@
 - **事件驱动核心** — 所有组件通过类型化事件队列通信，回测与实盘使用相同接口
 - **策略框架** — 实现 `on_bar` / `on_tick`，发送交易信号，插拔式风控规则
 - **回测模拟器** — 回放 Bar 数据，以收盘价撮合订单，跟踪现金与持仓
+- **回测可视化** — 自动生成含买卖点标注、净值曲线、回撤曲线、持仓量图的交互式 HTML 报告
 - **风险管理** — 可插拔的止损 / 止盈规则，每个市场事件均触发评估
 - **因子系统** — 拉取、计算并将金融因子持久化至 SQLite；通过放置 Python 文件即可扩展
 - **TuShare 集成** — 内置 `TuShareDataSource`，支持 A 股日线行情与每日指标
@@ -43,6 +44,25 @@ export TUSHARE_TOKEN=your_token_here
 ```bash
 python run_backtest.py
 python run_risk_backtest.py
+```
+
+回测结束后会自动在项目根目录生成 `backtest_report.html`，用浏览器打开即可查看：
+- 价格走势图（叠加买入 ▲ / 卖出 ▼ 标注）
+- 资金净值曲线
+- 回撤曲线
+- 持仓量时序图
+
+**依赖安装**（可视化功能需要）：
+```bash
+pip install plotly matplotlib pandas numpy
+```
+
+也可在代码中手动调用：
+```python
+result = runner.get_results(save_report=True, report_path="my_report.html")
+# 或关闭控制台输出，仅获取结构化结果：
+result = runner.get_results(verbose=False)
+# result.equity_curve, result.trades, result.metrics ...
 ```
 
 ### 运行回测（因子数据库）

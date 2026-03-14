@@ -53,3 +53,7 @@ class MovingAverageCrossover(StatefulStrategy):
         """Helper to calculate Simple Moving Average."""
         subset = prices[-period:]
         return sum(subset) / len(subset)
+
+    def check_risk(self, data: Any, context: StrategyContext) -> bool:
+        """No additional risk checks for this strategy — always proceed."""
+        return True
